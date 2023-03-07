@@ -1,5 +1,5 @@
 <template>
-  <q-page class="flex flex-center">
+  <q-page class="flex justify-center">
     <div class="q-pa-md" style="width: 85vw">
       <q-form @submit.prevent="addToDo" @reset="onReset" class="q-gutter-md">
         <q-input
@@ -7,7 +7,6 @@
           label="What do you want to do? *"
           hint="example: lazy-lazyan"
         />
-
         <div>
           <q-btn label="Submit" type="submit" color="primary" />
           <q-btn label="Reset" type="reset" color="primary" class="q-ml-sm" />
