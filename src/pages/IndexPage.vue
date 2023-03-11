@@ -2,88 +2,210 @@
   <q-page class="flex justify-center">
     <div class="q-pa-md" style="width: 85vw">
       <q-form @submit.prevent="addToDo" @reset="onReset" class="q-gutter-md">
+        <div>
+          <div>
+            <div class="text-h5 text-primary">
+              Hi, {{ uppercase(fullName) }}
+            </div>
+            <div class="text-subtitle1">
+              What do I want to remind you what do you want to do?
+            </div>
+          </div>
+        </div>
+
+        <br />
         <q-input
-          v-model="name"
+          v-model="todo"
           label="What do you want to do? *"
           hint="example: lazy-lazyan"
+          v-bind:id="idtodo"
+          ref="todoInput"
         />
         <div>
           <q-btn label="Submit" type="submit" color="primary" />
-          <q-btn label="Reset" type="reset" color="primary" class="q-ml-sm" />
+          <!-- <q-btn label="Reset" type="reset" color="primary" class="q-ml-sm" /> -->
         </div>
       </q-form>
 
-      <div class="q-pa-md">
-        <q-list bordered separator>
-          <q-item v-for="(item, index) in Todo" :key="item">
-            <q-item-section>
-              <q-item-label>{{ item.todo }}</q-item-label>
-              <q-item-label v-if="!item.edit" caption>{{
-                item.dateTime
-              }}</q-item-label>
-              <q-input v-else v-model="valueEdit" />
-              <q-item-label v-if="item.edited" caption
-                >edited: {{ item.edited }}</q-item-label
-              >
-            </q-item-section>
+      <div class="q-pa-md"></div>
+      <q-list bordered separator>
+        <q-item v-for="(item, index) in list_todo" :key="item">
+          <q-item-section>
+            <q-item-label>{{ item.todo }}</q-item-label>
 
-            <div class="text-center">
-              <!-- <q-icon clickable name="edit" color="teal" size="25px" /> -->
-              <q-btn
-                @click="editItem(index, item.todo)"
-                color="primary"
-                icon="edit"
-                v-if="!item.edit"
-                style="padding-left: 5px; padding-right: 5px"
-              />
-              <q-btn
-                @click="deleteItem(index)"
-                color="negative"
-                icon="delete"
-                v-if="!item.edit"
-                style="margin-left: 10px; padding-left: 5px; padding-right: 5px"
-              />
-              <q-btn
-                @click="saveEdit(index)"
-                color="primary"
-                icon="check"
-                v-if="item.edit"
-                style="margin-left: 10px; padding-left: 5px; padding-right: 5px"
-              />
-            </div>
-          </q-item>
-        </q-list>
-      </div>
+            <q-item-label caption
+              >Created Date: {{ item.datetime }}</q-item-label
+            >
+            <q-item-label caption
+              >Created By: {{ getUserName(item.iduser) }}</q-item-label
+            >
+            <q-item-label v-if="item.idlastedit" caption
+              >Edited By: {{ getEditByName(item.idlastedit) }}</q-item-label
+            >
+            <q-item-label v-if="item.idlastedit" caption
+              >Edited Date: {{ getEditDate(item.idlastedit) }}</q-item-label
+            >
+            <q-input v-if="item.edit" v-model="item.editText" />
+            <q-item-label v-if="item.edit" caption
+              >edited: {{ item.edited }}</q-item-label
+            >
+          </q-item-section>
+
+          <div class="text-center">
+            <q-btn-dropdown
+              color="primary"
+              icon="history"
+              style="
+                margin-right: 10px;
+                padding-left: 15px;
+                padding-right: 15px;
+              "
+              v-if="item.idlastedit"
+            >
+              <q-list
+                style="
+                  width: 300px;
+                  padding-left: 20px;
+                  padding-right: 20px;
+                  padding-top: 10px;
+                  padding-bottom: 10px;
+                "
+                v-for="dataHistory in getEditHistory(item.idtodo)"
+                :key="dataHistory.id"
+              >
+                <q-item-label>{{ dataHistory.todo }}</q-item-label>
+                <q-item-label caption
+                  >Edited Date: {{ dataHistory.datetime }}</q-item-label
+                >
+                <q-item-label caption
+                  >Edited By:
+                  {{ getUserName(dataHistory.iduser) }}</q-item-label
+                >
+              </q-list>
+            </q-btn-dropdown>
+
+            <q-btn
+              @click="editItem(index, item.todo)"
+              color="primary"
+              icon="edit"
+              v-if="!item.edit"
+              style="padding-left: 5px; padding-right: 5px"
+            />
+            <q-btn
+              v-on:click="showPopup(index)"
+              color="negative"
+              icon="delete"
+              v-if="!item.edit"
+              style="margin-left: 10px; padding-left: 5px; padding-right: 5px"
+            />
+            <q-btn
+              @click="saveEdit(item.idtodo, index)"
+              color="primary"
+              icon="check"
+              v-if="item.edit"
+              style="margin-left: 10px; padding-left: 5px; padding-right: 5px"
+            />
+          </div>
+
+          <q-dialog v-model="item.remove" persistent>
+            <q-card>
+              <q-card-section class="row items-center">
+                <q-avatar icon="delete" color="negative" text-color="white" />
+                <span class="q-ml-sm">Apakah kamu yakin?</span>
+              </q-card-section>
+
+              <q-card-actions align="right">
+                <q-btn
+                  flat
+                  label="Ya"
+                  color="negative"
+                  @click="deleteItem(item.idtodo)"
+                />
+                <q-btn flat label="Tidak" color="primary" v-close-popup />
+              </q-card-actions>
+            </q-card>
+          </q-dialog>
+        </q-item>
+      </q-list>
     </div>
   </q-page>
 </template>
 
 <script>
-import { defineComponent } from "vue";
 import { useQuasar } from "quasar";
 import { ref } from "vue";
+import axios from "axios";
+import dayjs from "dayjs";
+import { v4 as uuidv4 } from "uuid";
+import Cookies from "js-cookie";
+import { inject } from "vue";
+import { mapActions, mapGetters } from "vuex";
+import { useRouter } from "vue-router";
+import store from "../store.js";
 
 export default {
   data() {
     return {
-      Todo: JSON.parse(localStorage.getItem("Todo")),
+      list_todo: [],
+      list_users: [],
+      list_history: [],
       valueEdit: "",
+      idtodo: uuidv4(),
+      todo: "",
+      name: "Unidentified User",
+      confirm: false,
+      fullName: "undefined",
+
+      // filters: {
+      //   uppercase(value) {
+      //     if (!value) return "";
+      //     return value.toUpperCase();
+      //   },
+      // },
     };
   },
 
   mounted() {
-    if (JSON.parse(localStorage.getItem("Todo")) === null) {
-      localStorage.setItem("Todo", JSON.stringify([]));
+    const router = useRouter();
+
+    if (store.state.isLoggedIn) {
+      router.push("/");
+    }
+    axios
+      .get("http://localhost:3000/get_todo")
+      .then((response) => {
+        console.log(response.data);
+        this.list_todo = this.sortedDates(response.data.todo);
+        this.list_history = this.sortedDates(response.data.edit);
+        this.list_users = response.data.users;
+      })
+      .catch((error) => {
+        console.log(error);
+      });
+
+    if (this.fullName === "undefined") {
+      const token = Cookies.get("token");
+      axios
+        .post("http://localhost:3000/get_user", { token })
+        .then((response) => {
+          if (response.data.status === 200) {
+            this.fullName = response.data.data.fullname;
+          } else {
+            this.signOut();
+          }
+        })
+        .catch((error) => {
+          console.log(error);
+        });
     }
   },
-
   setup() {
     const $q = useQuasar();
     const name = ref(null);
+    const stores = store;
 
     return {
-      name,
-
+      stores,
       onSubmit() {
         Todo.push(name.value);
 
@@ -104,53 +226,181 @@ export default {
         }
       },
 
-      onReset() {
-        name.value = null;
-      },
+      // onReset() {
+      //   name.value = null;
+      // },
     };
   },
-
+  computed: {
+    ...mapGetters(["isUserLoggedIn", "user"]),
+  },
   methods: {
-    addToDo() {
-      const today = new Date();
-      const date = today.toLocaleDateString();
-      const time = today.toLocaleTimeString();
+    ...mapActions(["logoutUser"]),
+    logout() {
+      this.logoutUser();
+      this.$router.push("/login");
+    },
+    uppercase(fullName) {
+      // return fullName.toUpperCase();
+      return this.fullName.charAt(0).toUpperCase() + this.fullName.slice(1);
+    },
 
-      if (this.name !== "" && this.name !== null) {
-        this.Todo.push({
-          todo: this.name,
-          dateTime: `${date} ${time}`,
-          edit: false,
-          edited: false,
-        });
-        localStorage.setItem("Todo", JSON.stringify(this.Todo));
-        this.name = null;
+    sortedDates(param) {
+      return param.sort((a, b) => dayjs(b.datetime).diff(dayjs(a.datetime)));
+    },
+    getUserName(param) {
+      const user = this.list_users.find((data) => data.id === param);
+      if (user !== undefined) {
+        return user.fullname;
+      } else {
+        return param;
       }
     },
+    getEditByName(param) {
+      const history = this.list_history.find((data) => data.id === param);
+      if (history !== undefined) {
+        const user = this.list_users.find((data) => data.id === history.iduser);
+        return user.fullname;
+      } else {
+        return param;
+      }
+    },
+    getEditDate(param) {
+      const history = this.list_history.find((data) => data.id === param);
+      if (history !== undefined) {
+        return history.datetime;
+      } else {
+        return param;
+      }
+    },
+    getEditHistory(param) {
+      const history = this.list_history.filter((data) => data.idtodo === param);
+      if (history !== undefined) {
+        return history;
+      } else {
+        return param;
+      }
+    },
+    getTodo() {
+      axios
+        .get("http://localhost:3000/get_todo")
+        .then((response) => {
+          this.list_todo = this.sortedDates(response.data.todo);
+          this.list_history = this.sortedDates(response.data.edit);
+          this.list_users = response.data.users;
+        })
+        .catch((error) => {
+          console.log(error);
+        });
+    },
+
+    showPopup(param) {
+      this.list_todo[param].remove = true;
+    },
+
+    addToDo() {
+      if (!this.todo) {
+        // alert("Please enter a todo");
+        this.$q.notify({
+          color: "red-5",
+          textColor: "white",
+          icon: "warning",
+          message: "Tolong masukan Todo",
+          timeout: 1000,
+        });
+        return;
+      }
+
+      const idtodo = uuidv4();
+      const todo = this.todo;
+      const datTime = dayjs().format("YYYY-MM-DD HH:mm:ss");
+      const sql = `INSERT INTO todo(idtodo, todo, datetime, idlastedit, iduser) VALUES ('${idtodo}','${todo}','${datTime}','',`;
+      const token = Cookies.get("token");
+      axios
+        .post("http://localhost:3000/add_todo", {
+          sql,
+          token,
+        })
+        .then((response) => {
+          console.log(response.data);
+          if (response.data.status === 200) {
+            this.todo = "";
+            this.getTodo();
+          }
+        })
+        .catch((error) => {
+          console.log(error);
+        });
+    },
     editItem(param, text) {
-      this.valueEdit = text;
-      this.Todo[param].edit = true;
+      this.list_todo[param].editText = text;
+      this.list_todo[param].edit = true;
+      this.list_todo[param].edited = true;
     },
-    saveEdit(param) {
-      const today = new Date();
-      const date = today.toLocaleDateString();
-      const time = today.toLocaleTimeString();
+    saveEdit(param, index) {
+      const id = uuidv4();
+      const todo = this.list_todo[index].editText;
+      const datTime = dayjs().format("YYYY-MM-DD HH:mm:ss");
+      const sql = `UPDATE todo SET todo='${todo}',idlastedit='${id}' WHERE idtodo='${param}'`;
+      const sql_edit = `INSERT INTO edit_todo(id, todo, datetime, idtodo, iduser) VALUES ('${id}','${todo}','${datTime}','${param}',`;
+      const token = Cookies.get("token");
+      axios
+        .post("http://localhost:3000/update_todo", {
+          sql,
+          sql_edit,
+          token,
+        })
+        .then((response) => {
+          if (response.data.status === 200) {
+            this.list_todo[index].edit = false;
+            this.list_todo[index].edited = false;
+            // this.list_todo[index].todo = this.list_todo[index].editText;
+            this.getTodo();
+          }
+        })
+        .catch((error) => {
+          console.log(error);
+        });
+    },
 
-      this.Todo[param].todo = this.valueEdit;
-      this.Todo[param].edit = false;
-      this.Todo[param].edited = `${date} ${time}`;
-      localStorage.setItem("Todo", JSON.stringify(this.Todo));
-    },
     deleteItem(param) {
-      this.Todo.splice(param, 1);
-      localStorage.setItem("Todo", JSON.stringify(this.Todo));
+      const sql = `DELETE FROM todo WHERE idtodo='${param}'`;
+      const token = Cookies.get("token");
+      console.log(sql);
+      axios
+        .post("http://localhost:3000/delete_todo", {
+          sql,
+          token,
+        })
+        .then((response) => {
+          if (response.data.status === 200) {
+            this.confirm = false;
+            this.getTodo();
+          }
+        })
+        .catch((error) => {
+          console.log(error);
+        });
     },
-  },
 
-  // computed: {
-  //   mappedData() {
-  //     return this.arrayData.map((item) => item);
-  //   },
-  // },
+    // SignOut() {
+    //   Cookies.remove("authToken");
+
+    //   this.$router.push("/login");
+    // },
+    // },
+
+    // computed: {
+    // isLoggedIn() {
+    // return this.$store.state.isLoggedIn;
+    // },
+    // },
+
+    // computed: {
+    //   mappedData() {
+    //     return this.arrayData.map((item) => item);
+    //   },
+    // },
+  },
 };
 </script>

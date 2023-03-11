@@ -2,7 +2,9 @@
   <q-page class="flex flex-center">
     <div class="q-pa-md" style="max-width: 700px; width: 80%">
       <div style="text-align: center">
-        <div class="text-h4 text-primary">Register</div>
+        <div class="text-h4 text-primary text-weight-medium">
+          Registerasi Sekarang!
+        </div>
         <div class="text-subtitle1">Tolong isi form dibawah dengan benar.</div>
         <br />
       </div>
@@ -20,7 +22,6 @@
               'Username tidak sesuai, silahkan coba lagi',
           ]"
         />
-
         <q-input
           filled
           v-model="username"
@@ -33,7 +34,6 @@
               'Username tidak sesuai, silahkan coba lagi',
           ]"
         />
-
         <q-input
           filled
           v-model="password"
@@ -87,42 +87,69 @@
 <script>
 import { useQuasar } from "quasar";
 import { ref } from "vue";
-
+import axios from "axios";
+import { v4 as uuidv4 } from "uuid";
+import CryptoJS from "crypto-js";
+import { useRouter } from "vue-router";
+import store from "../store.js";
+  
 export default {
   setup() {
     const $q = useQuasar();
-
+    const id = ref(uuidv4());
     const name = ref(null);
+    const username = ref(null);
     const password = ref(null);
-    const accept = ref(false);
+    const router = useRouter();
 
     return {
+      id,
       name,
       password,
-      accept,
+      username,
       val: ref(false),
       passwordVisible: ref(false),
 
-      methods: {},
-
       onSubmit() {
-        if (accept.value !== true) {
-          $q.notify({
-            color: "red-5",
-            textColor: "white",
-            icon: "warning",
-            message: "You need to accept the license and terms first",
+        const hash = CryptoJS.SHA256(password.value).toString();
+        const username_check = `SELECT username FROM users WHERE username = '${username.value}'`;
+
+        const sql = `INSERT INTO users(id, fullname, username, password) VALUES ('${id.value}', '${name.value}', '${username.value}', '${hash}')`;
+        axios
+          .post("http://localhost:3000/register", {
+            sql,
+          })
+          .then((response) => {
+            console.log(response.data);
+            if (response.data.status === 200) {
+              $q.notify({
+                color: "positive",
+                position: "top",
+                message: "Berhasil Register",
+                timeout: 1000,
+              });
+              router.push("/login");
+            } else {
+              $q.notify({
+                color: "negative",
+                position: "top",
+                message: "Username telah digunakan",
+                timeout: 1000,
+              });
+            }
+          })
+          .catch((error) => {
+            console.log(error);
           });
-        } else {
-          $q.notify({
-            color: "green-4",
-            textColor: "white",
-            icon: "cloud_done",
-            message: "Submitted",
-          });
-        }
       },
     };
+  },
+  mounted() {
+    const router = useRouter();
+
+    if (store.state.isLoggedIn) {
+      router.push("/");
+    }
   },
 };
 </script>

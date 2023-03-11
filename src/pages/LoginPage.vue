@@ -2,9 +2,9 @@
   <q-page class="flex flex-center">
     <div class="q-pa-md" style="max-width: 700px; width: 80%">
       <div style="text-align: center">
-        <div class="text-h4 text-primary">Login</div>
+        <div class="text-h4 text-primary text-weight-medium">Login</div>
         <div class="text-subtitle1">
-          Tolong isi form dibawah untuk melanjutkan.
+          Selamat datang di ToDo App, silahkan login untuk melanjutkan
         </div>
         <br />
       </div>
@@ -54,9 +54,10 @@
           </template>
         </q-input>
 
-        <div class="q-pa-md" style="margin-top: 0px; margin-left: 0px">
+        <!-- <div class="q-pa-md" style="margin-top: 0px; margin-left: 0px">
           <q-checkbox v-model="val" label="Ingat saya" />
-        </div>
+        </div> -->
+
         <div>
           <q-btn label="Log In" type="submit" color="primary" />
           <br />
@@ -67,13 +68,6 @@
               style="text-decoration: none"
               class="text-primary"
             >
-              <!-- <q-btn
-                class="reg-btn"
-                flat
-                color="primary"
-                label="Register"
-                no-hover
-              /> -->
               <b> Register </b>
             </router-link>
           </div>
@@ -93,43 +87,75 @@
 </style>
 
 <script>
-import { useQuasar } from "quasar";
 import { ref } from "vue";
-
+import Cookies from "js-cookie";
+import CryptoJS from "crypto-js";
+import axios from "axios";
+import { useQuasar } from "quasar";
+import { useRouter } from "vue-router";
+import store from "../store.js";
 export default {
   setup() {
     const $q = useQuasar();
-
-    const name = ref(null);
+    const username = ref(null);
     const password = ref(null);
-    const accept = ref(false);
+    const errorMsg = ref(null);
+    const router = useRouter();
+
     return {
-      name,
+      username,
       password,
-      // passwordVisible: false,
-      accept,
       val: ref(false),
       passwordVisible: ref(false),
-      methods: {},
-
+      errorMsg,
       onSubmit() {
-        if (accept.value !== true) {
-          $q.notify({
-            color: "red-5",
-            textColor: "white",
-            icon: "warning",
-            message: "You need to accept the license and terms first",
+        const hash = CryptoJS.SHA256(password.value).toString();
+        axios
+          .post("http://localhost:3000/login", {
+            username: username.value,
+            password: hash,
+          })
+          .then((response) => {
+            if (response.data.status === 200) {
+              Cookies.set("token", response.data.token, {
+                expires: 1,
+              });
+              // login();
+              // this.$store.commit("login");
+              store.commit("login");
+              console.log("Login kepencet");
+              router.push("/");
+            } else {
+              $q.notify({
+                color: "negative",
+                position: "top",
+                message: "Salah password atau username",
+                timeout: 1000,
+              });
+              console.log("salah password atau username");
+            }
+          })
+          .catch((error) => {
+            console.log(error);
           });
-        } else {
-          $q.notify({
-            color: "green-4",
-            textColor: "white",
-            icon: "cloud_done",
-            message: "Submitted",
-          });
-        }
       },
     };
+  },
+  methods: {
+    login() {
+      // Add your login logic here
+      // Set isLoggedIn to true if login is successful
+      // this.$store.commit("setLoggedIn", true);
+      // Redirect to the home page
+      this.$router.push("/");
+    },
+  },
+  mounted() {
+    const router = useRouter();
+
+    if (store.state.isLoggedIn) {
+      router.push("/");
+    }
   },
 };
 </script>

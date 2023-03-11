@@ -2,22 +2,20 @@
   <q-layout view="lHh Lpr lFf">
     <q-header elevated>
       <q-toolbar>
-        <q-btn
-          flat
-          dense
-          round
-          icon="menu"
-          aria-label="Menu"
-          @click="toggleLeftDrawer"
-        />
-
         <q-toolbar-title> First Project CRUD </q-toolbar-title>
-
-        <div>Legal Analytics</div>
+        <q-btn
+          v-if="this.$router.currentRoute.value.fullPath === '/'"
+          @click="signOut"
+          icon="logout"
+          label="Sign Out"
+          color="primary"
+        />
+        <div v-else>Big Legal Analytics</div>
+        <!-- <slot name="header-action" /> -->
       </q-toolbar>
     </q-header>
 
-    <q-drawer v-model="leftDrawerOpen" bordered>
+    <!-- <q-drawer v-model="leftDrawerOpen" bordered>
       <q-list>
         <q-item-label header> Essential Links </q-item-label>
 
@@ -27,8 +25,7 @@
           v-bind="link"
         />
       </q-list>
-    </q-drawer>
-
+    </q-drawer> -->
     <q-page-container>
       <router-view />
     </q-page-container>
@@ -38,74 +35,63 @@
 <script>
 import { defineComponent, ref } from "vue";
 import EssentialLink from "components/EssentialLink.vue";
-
-const linksList = [
-  {
-    title: "Binusmaya",
-    caption: "binusmaya.binus.ac.id",
-    icon: "school",
-    link: "https://newbinusmaya.binus.ac.id",
-  },
-  {
-    title: "Annas's Github",
-    caption: "github.com/AnnasIsmail",
-    icon: "code",
-    link: "https://github.com/AnnasIsmail",
-  },
-  {
-    title: "Farhan's Github ",
-    caption: "github.com/fluorineheit",
-    icon: "code",
-    link: "https://github.com/fluorineheit",
-  },
-  {
-    title: "Laras' Github",
-    caption: "github.com/lareinalaras",
-    icon: "code",
-    link: "https://github.com/lareinalaras",
-  },
-  {
-    title: "Farhan's Twitter",
-    caption: "@Fluorine_heit",
-    icon: "public",
-    link: "https://twitter.com/Fluorine_heit",
-  },
-  {
-    title: "Laras' Spotify",
-    caption: "open.spotify.com/Lareina.",
-    icon: "favorite",
-    link: "https://open.spotify.com/user/5aqfmockw7lqjstjxps5x3ruj?si=e80ed56121184955",
-  },
-  {
-    title: "Spotify orang ganteng",
-    caption: "Klik saya",
-    icon: "favorite",
-    link: "https://open.spotify.com/user/21w5qjfckoxkiy4kaf53tqp5i?si=zfbgue8mSjyQecl9Cih8UQ",
-  },
-  {
-    title: "Annas's Youtube",
-    caption: "Click me",
-    icon: "favorite",
-    link: "https://www.youtube.com/channel/UCWBDexy4KU6WrHwR74B-Nfg",
-  },
-];
+import { useRouter } from "vue-router";
+import store from "../store.js";
+import axios from "axios";
+import Cookies from "js-cookie";
 
 export default defineComponent({
   name: "MainLayout",
 
   components: {
-    EssentialLink,
+    // EssentialLink,
+  },
+
+  mounted() {
+    const router = useRouter();
+    const token = Cookies.get("token");
+
+    axios
+      .post("http://localhost:3000/get_user", { token })
+      .then((response) => {
+        console.log(response.data);
+        if (response.data.status === 200) {
+          store.state.isLoggedIn = true;
+          store.state.fullName = response.data.data.fullname;
+          router.push("/");
+        } else {
+          this.signOut();
+        }
+      })
+      .catch((error) => {
+        console.log(error);
+      });
+  },
+
+  methods: {
+    signOut() {
+      // Logika untuk log out
+      if (
+        this.$router.currentRoute.value.fullPath !== "/login" &&
+        this.$router.currentRoute.value.fullPath !== "/register"
+      ) {
+        Cookies.remove("token");
+        this.$router.push("/login");
+        store.state.isLoggedIn = false;
+      }
+    },
   },
 
   setup() {
-    const leftDrawerOpen = ref(false);
+    // const leftDrawerOpen = ref(false);
 
+    function logout() {}
     return {
-      essentialLinks: linksList,
-      leftDrawerOpen,
-      toggleLeftDrawer() {
-        leftDrawerOpen.value = !leftDrawerOpen.value;
-      },
+      // essentialLinks: linksList,
+      // leftDrawerOpen,
+      // toggleLeftDrawer() {
+      //   leftDrawerOpen.value = !leftDrawerOpen.value;
+      // },
     };
   },
 });
