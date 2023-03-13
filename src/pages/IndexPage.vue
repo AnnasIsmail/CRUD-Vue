@@ -1,7 +1,20 @@
 <template>
   <q-page class="flex justify-center">
-    <div class="q-pa-md" style="width: 85vw">
-      <q-form @submit.prevent="addToDo" @reset="onReset" class="q-gutter-md">
+    <div class="q-pa-md flex column" style="width: 85vw">
+      <q-form
+        @submit.prevent="addToDo"
+        @reset="onReset"
+        class="q-gutter-md"
+        style="
+          background-color: white;
+          padding: 10px;
+          padding-bottom: 15px;
+          padding-top: 1px;
+          margin-left: 0px;
+          margin-top: 1px;
+          border-radius: 10px;
+        "
+      >
         <div>
           <div>
             <div class="text-h5 text-primary">
@@ -26,12 +39,28 @@
           <!-- <q-btn label="Reset" type="reset" color="primary" class="q-ml-sm" /> -->
         </div>
       </q-form>
+      <div class="q-pa-sm">
+        <q-inner-loading :showing="loading">
+          <q-spinner-gears size="50px" color="primary" />
+        </q-inner-loading>
+      </div>
 
-      <div class="q-pa-md"></div>
-      <q-list bordered separator>
+      <q-list
+        bordered
+        separator
+        class="bg-white"
+        style="padding: 10px; border-radius: 10px"
+        v-if="!loading"
+      >
+        <div
+          class="q-pa-sm text-body1 text-center"
+          v-if="list_todo.length === 0"
+        >
+          There is no todo list
+        </div>
         <q-item v-for="(item, index) in list_todo" :key="item">
           <q-item-section>
-            <q-item-label>{{ item.todo }}</q-item-label>
+            <q-item-label class="text-h6">{{ item.todo }}</q-item-label>
 
             <q-item-label caption
               >Created Date: {{ item.datetime }}</q-item-label
@@ -51,7 +80,7 @@
             >
           </q-item-section>
 
-          <div class="text-center">
+          <div class="text-center items-center flex">
             <q-btn-dropdown
               color="primary"
               icon="history"
@@ -86,7 +115,7 @@
 
             <q-btn
               @click="editItem(index, item.todo)"
-              color="primary"
+              color="warning"
               icon="edit"
               v-if="!item.edit"
               style="padding-left: 5px; padding-right: 5px"
@@ -155,13 +184,8 @@ export default {
       name: "Unidentified User",
       confirm: false,
       fullName: "undefined",
-
-      // filters: {
-      //   uppercase(value) {
-      //     if (!value) return "";
-      //     return value.toUpperCase();
-      //   },
-      // },
+      onEdit: false,
+      loading: true,
     };
   },
 
@@ -174,7 +198,7 @@ export default {
     axios
       .get("http://localhost:3000/get_todo")
       .then((response) => {
-        console.log(response.data);
+        this.loading = false;
         this.list_todo = this.sortedDates(response.data.todo);
         this.list_history = this.sortedDates(response.data.edit);
         this.list_users = response.data.users;
@@ -333,9 +357,13 @@ export default {
         });
     },
     editItem(param, text) {
+      if (this.onEdit !== false) {
+        this.list_todo[this.onEdit].edit = false;
+      }
       this.list_todo[param].editText = text;
       this.list_todo[param].edit = true;
       this.list_todo[param].edited = true;
+      this.onEdit = param;
     },
     saveEdit(param, index) {
       const id = uuidv4();
@@ -344,23 +372,27 @@ export default {
       const sql = `UPDATE todo SET todo='${todo}',idlastedit='${id}' WHERE idtodo='${param}'`;
       const sql_edit = `INSERT INTO edit_todo(id, todo, datetime, idtodo, iduser) VALUES ('${id}','${todo}','${datTime}','${param}',`;
       const token = Cookies.get("token");
-      axios
-        .post("http://localhost:3000/update_todo", {
-          sql,
-          sql_edit,
-          token,
-        })
-        .then((response) => {
-          if (response.data.status === 200) {
-            this.list_todo[index].edit = false;
-            this.list_todo[index].edited = false;
-            // this.list_todo[index].todo = this.list_todo[index].editText;
-            this.getTodo();
-          }
-        })
-        .catch((error) => {
-          console.log(error);
-        });
+      if (todo !== this.list_todo[index].todo) {
+        axios
+          .post("http://localhost:3000/update_todo", {
+            sql,
+            sql_edit,
+            token,
+          })
+          .then((response) => {
+            if (response.data.status === 200) {
+              this.list_todo[index].edit = false;
+              this.list_todo[index].edited = false;
+              this.getTodo();
+              this.onEdit = false;
+            }
+          })
+          .catch((error) => {
+            console.log(error);
+          });
+      } else {
+        this.list_todo[index].edit = false;
+      }
     },
 
     deleteItem(param) {
@@ -382,25 +414,6 @@ export default {
           console.log(error);
         });
     },
-
-    // SignOut() {
-    //   Cookies.remove("authToken");
-
-    //   this.$router.push("/login");
-    // },
-    // },
-
-    // computed: {
-    // isLoggedIn() {
-    // return this.$store.state.isLoggedIn;
-    // },
-    // },
-
-    // computed: {
-    //   mappedData() {
-    //     return this.arrayData.map((item) => item);
-    //   },
-    // },
   },
 };
 </script>

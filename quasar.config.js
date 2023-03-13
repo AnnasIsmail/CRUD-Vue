@@ -85,9 +85,25 @@ module.exports = configure(function (/* ctx */) {
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#framework
     framework: {
+      // config: {
+      //   notify: {
+      //     /* look at QuasarConfOptions from the API card */
+      //   },
+      // },
+
       config: {
-        notify: {
-          /* look at QuasarConfOptions from the API card */
+        brand: {
+          primary: "#065758",
+          secondary: "#82c3c5",
+          accent: "#5a5183",
+
+          dark: "#302637",
+          "dark-page": "#43474b",
+
+          positive: "#a1c14b",
+          negative: "#c46960",
+          info: "#31CCEC",
+          warning: "#f3ce6e",
         },
       },
 

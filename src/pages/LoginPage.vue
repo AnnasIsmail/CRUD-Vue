@@ -1,6 +1,14 @@
 <template>
   <q-page class="flex flex-center">
-    <div class="q-pa-md" style="max-width: 700px; width: 80%">
+    <div
+      class="q-pa-md"
+      style="
+        max-width: 700px;
+        width: 80%;
+        background-color: white;
+        border-radius: 10px;
+      "
+    >
       <div style="text-align: center">
         <div class="text-h4 text-primary text-weight-medium">Login</div>
         <div class="text-subtitle1">
@@ -59,7 +67,12 @@
         </div> -->
 
         <div>
-          <q-btn label="Log In" type="submit" color="primary" />
+          <q-btn
+            label="Log In"
+            type="submit"
+            :loading="loading"
+            color="primary"
+          />
           <br />
           <div style="text-align: center">
             Belum punya akun?
@@ -101,14 +114,16 @@ export default {
     const password = ref(null);
     const errorMsg = ref(null);
     const router = useRouter();
-
+    const loading = ref(false);
     return {
       username,
       password,
       val: ref(false),
       passwordVisible: ref(false),
       errorMsg,
+      loading,
       onSubmit() {
+        loading.value = true;
         const hash = CryptoJS.SHA256(password.value).toString();
         axios
           .post("http://localhost:3000/login", {
@@ -120,10 +135,7 @@ export default {
               Cookies.set("token", response.data.token, {
                 expires: 1,
               });
-              // login();
-              // this.$store.commit("login");
               store.commit("login");
-              console.log("Login kepencet");
               router.push("/");
             } else {
               $q.notify({
@@ -132,7 +144,6 @@ export default {
                 message: "Salah password atau username",
                 timeout: 1000,
               });
-              console.log("salah password atau username");
             }
           })
           .catch((error) => {
@@ -143,10 +154,6 @@ export default {
   },
   methods: {
     login() {
-      // Add your login logic here
-      // Set isLoggedIn to true if login is successful
-      // this.$store.commit("setLoggedIn", true);
-      // Redirect to the home page
       this.$router.push("/");
     },
   },
@@ -156,6 +163,11 @@ export default {
     if (store.state.isLoggedIn) {
       router.push("/");
     }
+  },
+  data() {
+    return {
+      // loading: false,
+    };
   },
 };
 </script>

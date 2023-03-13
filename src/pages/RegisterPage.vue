@@ -1,10 +1,16 @@
 <template>
   <q-page class="flex flex-center">
-    <div class="q-pa-md" style="max-width: 700px; width: 80%">
+    <div
+      class="q-pa-md"
+      style="
+        max-width: 700px;
+        width: 80%;
+        background-color: white;
+        border-radius: 10px;
+      "
+    >
       <div style="text-align: center">
-        <div class="text-h4 text-primary text-weight-medium">
-          Registerasi Sekarang!
-        </div>
+        <div class="text-h4 text-primary text-weight-medium">Registrasi</div>
         <div class="text-subtitle1">Tolong isi form dibawah dengan benar.</div>
         <br />
       </div>
@@ -92,7 +98,7 @@ import { v4 as uuidv4 } from "uuid";
 import CryptoJS from "crypto-js";
 import { useRouter } from "vue-router";
 import store from "../store.js";
-  
+
 export default {
   setup() {
     const $q = useQuasar();
